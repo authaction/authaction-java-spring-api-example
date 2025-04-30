@@ -27,8 +27,8 @@ It uses JSON Web Tokens (JWT) for authentication and authorization and validates
 
 - Clone the repository (if applicable):
 
-git clone https://github.com/your-username/springoauth2demo.git
-cd springoauth2demo
+git clone git@github.com:authaction/authaction-java-spring-api-example.git
+cd authaction-java-spring-api-example
 Install dependencies and configure your environment:
 
 ./mvnw clean install
@@ -41,10 +41,10 @@ Edit the src/main/resources/application.properties file:
 spring.application.name=springoauth2demo
 server.port=3000
 
-authaction.audience=https://your-authaction-api-identifier
+authaction.audience=your-authaction-api-identifier
 authaction.domain=your-authaction-tenant-domain
-spring.security.oauth2.resourceserver.jwt.issuer-uri=https://${auth0.domain}/
-Replace the auth0.audience and auth0.domain with your actual AuthAction API configuration values.
+spring.security.oauth2.resourceserver.jwt.issuer-uri=https://${authaction.domain}/
+Replace the authaction.audience and authaction.domain with your actual AuthAction API configuration values.
 
 
 **Usage**
@@ -181,9 +181,9 @@ JWKS Fetching or Decoding Errors
 Audience/Issuer Mismatch
 - Check if your application.properties values match:
 
-- auth0.audience = your API Identifier
+- authaction.audience = your API Identifier
 
-- auth0.domain = your tenant domain
+- authaction.domain = your tenant domain
 
 - These must match the values inside your token.
 
