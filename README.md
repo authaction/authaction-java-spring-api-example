@@ -1,65 +1,65 @@
-
-**Integration Authorization in Spring Boot API using AuthAction**
+# Integration Authorization in Spring Boot API using AuthAction
 
 This is a Spring Boot application demonstrating how to integrate API authorization using AuthAction with Spring Security OAuth2 Resource Server and JWKS for token validation.
 
-**Overview**
+## Overview
 
-This application showcases how to configure and handle authorization using AuthAction’s access token in a Spring Boot REST API.
-It uses JSON Web Tokens (JWT) for authentication and authorization and validates them dynamically using JWKS (JSON Web Key Sets) provided by AuthAction.
+This application showcases how to configure and handle authorization using AuthAction's access token in a Spring Boot REST API. It uses JSON Web Tokens (JWT) for authentication and authorization and validates them dynamically using JWKS (JSON Web Key Sets) provided by AuthAction.
 
-**Prerequisites**
+## Prerequisites
 
-- Before using this application, ensure you have:
+Before using this application, ensure you have:
 
 - Java 17+ installed
-
 - Maven installed (for building and running the project)
-
 - AuthAction API credentials:
+  - Tenant Domain
+  - API Identifier (Audience)
 
-- Tenant Domain
+## Installation
 
-- API Identifier (Audience)
-  
-
-**Installation**
-
-- Clone the repository (if applicable):
-
+1. Clone the repository:
+```bash
 git clone git@github.com:authaction/authaction-java-spring-api-example.git
 cd authaction-java-spring-api-example
-Install dependencies and configure your environment:
+```
 
+2. Install dependencies:
+```bash
 ./mvnw clean install
+```
 
+## Configuration
 
-**Configuration**
+Edit the `src/main/resources/application.properties` file:
 
-Edit the src/main/resources/application.properties file:
-
+```properties
 spring.application.name=springoauth2demo
 server.port=3000
 
 authaction.audience=your-authaction-api-identifier
 authaction.domain=your-authaction-tenant-domain
 spring.security.oauth2.resourceserver.jwt.issuer-uri=https://${authaction.domain}/
-Replace the authaction.audience and authaction.domain with your actual AuthAction API configuration values.
+```
 
+Replace the `authaction.audience` and `authaction.domain` with your actual AuthAction API configuration values.
 
-**Usage**
+## Usage
 
 Start the Spring Boot server:
-
+```bash
 ./mvnw spring-boot:run
-This will start the application at:
-http://localhost:3000
+```
 
+This will start the application at: http://localhost:3000
 
-**Testing Authorization**
+## Testing Authorization
+
+### Obtaining an Access Token
 
 To obtain an access token via client credentials flow, run the following curl command:
 
+```bash
 curl --request POST \
   --url https://your-authaction-tenant-domain/oauth2/m2m/token \
   --header 'content-type: application/json' \
@@ -69,125 +69,95 @@ curl --request POST \
     "audience": "your-authaction-api-identifier",
     "grant_type": "client_credentials"
   }'
+```
+
 Replace the placeholders with your actual AuthAction credentials.
 
-You should receive a JWT access token, which you can use to access protected routes.
+### Public Endpoint
 
+You can call the public API without any authentication token. The GET `/public` endpoint is accessible by any user:
 
-**Public Endpoint**
-
-You can call the public API without any authentication token.
-The GET /public endpoint is accessible by any user:
-
+```bash
 curl --request GET \
   --url http://localhost:3000/public
-Response:
+```
 
+Response:
+```json
 {
   "message": "This is a public message!"
 }
+```
 
-**Protected Endpoint**
+### Protected Endpoint
 
 To access the protected API, you must send a valid JWT token:
 
-
+```bash
 curl --request GET \
   --url http://localhost:3000/protected \
   --header "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   --header "content-type: application/json"
+```
+
 Response:
-
-
+```json
 {
-  "message": "This is a protected message!",
-  "sub": "auth0|...",
-  "email": "..."
+  "message": "This is a protected message!"
 }
+```
 
+## Code Explanation
 
-**Code Explanation**
+### Security Configuration (`SecurityConfig.java`)
 
-Security Configuration (SecurityConfig.java)
-Overview:
-
-- Integrates JWT authentication into the Spring Boot application.
-
-- Configures JWT validation using OAuth2 Resource Server and JWKS URI.
+- Integrates JWT authentication into the Spring Boot application
+- Configures JWT validation using OAuth2 Resource Server and JWKS URI
 
 Security Filter Chain:
+- `.requestMatchers("/public").permitAll()` - Public endpoint, no authentication required
+- `.anyRequest().authenticated()` - All other endpoints require a valid JWT token
+- `.oauth2ResourceServer().jwt()` - Tells Spring to validate incoming requests using JWT
 
-- .requestMatchers("/public").permitAll() - Public endpoint, no authentication required.
+### Audience Validator (`AudienceValidator.java`)
 
-- .anyRequest().authenticated() - All other endpoints require a valid JWT token.
+- Custom validator that checks if the JWT's audience (aud) matches the expected API identifier
+- Ensures that only tokens issued for your API are accepted
 
-- .oauth2ResourceServer().jwt() - Tells Spring to validate incoming requests using JWT.
+### JWT Decoder
 
-Audience Validator (AudienceValidator.java):
+- Fetches the JWKS from AuthAction's server dynamically
+- Validates the token's signature, issuer, and audience
 
-- Custom validator that checks if the JWT’s audience (aud) matches the expected API identifier.
+### API Controller (`ApiController.java`)
 
-- Ensures that only tokens issued for your API are accepted.
+- Public Endpoint: `/public` - No authentication required
+- Protected Endpoint: `/protected` - Requires a valid JWT and extracts the sub (subject) and email from the JWT claims using `@AuthenticationPrincipal`
 
-JWT Decoder:
+## Troubleshooting
 
-- Fetches the JWKS from AuthAction’s server dynamically.
+### Invalid Token Errors
+- Ensure the token is signed by AuthAction
+- Check that the token has not expired
+- Verify the token's aud and iss claims match your configuration
 
-- Validates the token’s signature, issuer, and audience.
+### Unauthorized Access (401)
+This usually happens when:
+- The token is missing in the request
+- The token is invalid or not a Bearer token
+- Spring Security is blocking the request due to misconfiguration
 
-**API Controller (ApiController.java)**
+### JWKS Fetching or Decoding Errors
+- Make sure the JWKS URI is correct: `https://your-authaction-tenant-domain/.well-known/jwks.json`
+- Ensure the AuthAction domain is reachable from your app
 
-Public Endpoint:
+### Audience/Issuer Mismatch
+Check if your `application.properties` values match:
+- `authaction.audience` = your API Identifier
+- `authaction.domain` = your tenant domain
+These must match the values inside your token.
 
-- /public(Endpoint url)
-
-- No authentication required.
-
-Protected Endpoint:
-
-- /protected(endpoint url)
-
-- Requires a valid JWT.
-
-- Extracts the sub (subject) and email from the JWT claims using @AuthenticationPrincipal.
-
-**Common Issues**
-
-Invalid Token Errors
-- Ensure the token is signed by AuthAction.
-
-- Check that the token has not expired.
-
-- Verify the token’s aud and iss claims match your configuration.
-
-Unauthorized Access (401)
-- This usually happens when:
-
-- The token is missing in the request.
-
-- The token is invalid or not a Bearer token.
-
-- Spring Security is blocking the request due to misconfiguration.
-
-JWKS Fetching or Decoding Errors
-- Make sure the JWKS URI is correct:
-
-
-  https://your-authaction-tenant-domain/.well-known/jwks.json
-- Ensure the AuthAction domain is reachable from your app.
-
-
-
-Audience/Issuer Mismatch
-- Check if your application.properties values match:
-
-- authaction.audience = your API Identifier
-
-- authaction.domain = your tenant domain
-
-- These must match the values inside your token.
-
-**Contributing**
+## Contributing
 
 Feel free to submit issues or pull requests if you encounter bugs or have suggestions for improvement!
 
