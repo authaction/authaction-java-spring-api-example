@@ -13,7 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    @Value("${auth0.audience}")
+    @Value("${authaction.audience}")
     private String audience;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
