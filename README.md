@@ -1,6 +1,6 @@
 # Integration Authorization in Spring Boot API using AuthAction
 
-This is a Spring Boot application demonstrating how to integrate API authorization using AuthAction with Spring Security OAuth2 Resource Server and JWKS for token validation.
+This is a Spring Boot application demonstrating how to integrate API authorization using AuthAction with the `authaction-spring-boot-starter`.
 
 ## Overview
 
@@ -39,10 +39,9 @@ server.port=3000
 
 authaction.audience=your-authaction-api-identifier
 authaction.domain=your-authaction-tenant-domain
-spring.security.oauth2.resourceserver.jwt.issuer-uri=https://${authaction.domain}/
 ```
 
-Replace the `authaction.audience` and `authaction.domain` with your actual AuthAction API configuration values.
+Replace `authaction.audience` and `authaction.domain` with your actual AuthAction API configuration values. The `authaction-spring-boot-starter` auto-configures the JWT decoder from these two properties.
 
 ## Usage
 
@@ -111,28 +110,18 @@ Response:
 
 ### Security Configuration (`SecurityConfig.java`)
 
-- Integrates JWT authentication into the Spring Boot application
-- Configures JWT validation using OAuth2 Resource Server and JWKS URI
+- Integrates JWT authentication into the Spring Boot application using `oauth2ResourceServer().jwt()`
+- The `JwtDecoder` bean is provided automatically by `authaction-spring-boot-starter`
 
 Security Filter Chain:
 - `.requestMatchers("/public").permitAll()` - Public endpoint, no authentication required
 - `.anyRequest().authenticated()` - All other endpoints require a valid JWT token
 - `.oauth2ResourceServer().jwt()` - Tells Spring to validate incoming requests using JWT
 
-### Audience Validator (`AudienceValidator.java`)
-
-- Custom validator that checks if the JWT's audience (aud) matches the expected API identifier
-- Ensures that only tokens issued for your API are accepted
-
-### JWT Decoder
-
-- Fetches the JWKS from AuthAction's server dynamically
-- Validates the token's signature, issuer, and audience
-
 ### API Controller (`ApiController.java`)
 
 - Public Endpoint: `/public` - No authentication required
-- Protected Endpoint: `/protected` - Requires a valid JWT and extracts the sub (subject) and email from the JWT claims using `@AuthenticationPrincipal`
+- Protected Endpoint: `/protected` - Requires a valid JWT. The caller's JWT is available via `@AuthenticationPrincipal Jwt jwt`
 
 ## Troubleshooting
 
@@ -148,7 +137,7 @@ This usually happens when:
 - Spring Security is blocking the request due to misconfiguration
 
 ### JWKS Fetching or Decoding Errors
-- Make sure the JWKS URI is correct: `https://your-authaction-tenant-domain/.well-known/jwks.json`
+- The JWKS URI is resolved automatically from `authaction.domain` as `https://<domain>/.well-known/jwks.json`
 - Ensure the AuthAction domain is reachable from your app
 
 ### Audience/Issuer Mismatch
@@ -160,4 +149,3 @@ These must match the values inside your token.
 ## Contributing
 
 Feel free to submit issues or pull requests if you encounter bugs or have suggestions for improvement!
-
